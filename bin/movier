@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+require 'gli'
+begin # XXX: Remove this begin/rescue before distributing your app
+require 'movier'
+rescue LoadError
+  STDERR.puts "In development, you need to use `bundle exec bin/movier` to run your app"
+  STDERR.puts "At install-time, RubyGems will make sure lib, etc. are in the load path"
+  STDERR.puts "Feel free to remove this message from bin/movier now"
+  exit 64
+end
+
+include GLI::App
+
+program_desc 'Movier allows you to organize your movies, quickly.'
+
+version Movier::VERSION
+
+desc 'Find the IMDB.com rating for the given movie'
+arg_name 'movie name'
+command [:imdb, :rating] do |c|
+  c.desc 'Give me detailed information on the movies found'
+  c.switch [:d, :detailed]
+
+  c.desc 'Movie from a particular year'
+  c.default_value nil
+  c.flag :year
+
+  c.action do |global_options,options,args|
+    movie = args.join(" ")
+    Movier.rating movie, options
+  end
+end
+
+desc 'Organize movies in a folder'
+arg_name 'folder path'
+command [:classify, :organize] do |c|
+
+  c.desc 'Directory where movies will be saved after organizing'
+  c.default_value "/Volumes/JukeBox/Movies"
+  c.flag :dir
+
+  c.desc 'Classify all movies with this language'
+  c.flag :lang
+
+  c.action do |global_options,options,args|
+    Movier.organize args, options
+  end
+end
+
+pre do |global,command,options,args|
+  # Pre logic here
+  # Return true to proceed; false to abort and not call the
+  # chosen command
+  # Use skips_pre before a command to skip this block
+  # on that command only
+  true
+end
+
+post do |global,command,options,args|
+  # Post logic here
+  # Use skips_post before a command to skip this
+  # block on that command only
+end
+
+on_error do |exception|
+  # Error logic here
+  # return false to skip default error handling
+  false
+end
+
+exit run(ARGV)
