@@ -1,25 +1,21 @@
 #!/usr/bin/env ruby
 require 'gli'
-begin # XXX: Remove this begin/rescue before distributing your app
 require 'movier'
-rescue LoadError
-  STDERR.puts "In development, you need to use `bundle exec bin/movier` to run your app"
-  STDERR.puts "At install-time, RubyGems will make sure lib, etc. are in the load path"
-  STDERR.puts "Feel free to remove this message from bin/movier now"
-  exit 64
-end
 
 include GLI::App
-
-program_desc 'Movier allows you to organize your movies, quickly.'
+lmdb = Movier::LMDB.new
 
 version Movier::VERSION
+program_desc 'Movier allows you to organize your movies, quickly.'
 
 desc 'Find the IMDB.com rating for the given movie'
 arg_name 'movie name'
 command [:imdb, :rating] do |c|
-  c.desc 'Give me detailed information on the movies found'
-  c.switch [:d, :detailed]
+  c.desc 'Be verbose with information'
+  c.switch [:v, :verbose]
+
+  c.desc 'Do not ignore movies with less than 1000 votes'
+  c.switch [:a, :all]
 
   c.desc 'Movie from a particular year'
   c.default_value nil
@@ -27,7 +23,61 @@ command [:imdb, :rating] do |c|
 
   c.action do |global_options,options,args|
     movie = args.join(" ")
-    Movier.rating movie, options
+    Movier::info movie, options
+  end
+end
+
+desc 'Update the local movie database [LMDB]'
+arg_name 'directory_to_add', optional: true, multiple: true
+command [:update] do |c|
+  c.action do |global_options,options,args|
+    if args.any?
+      args.each { |dir| lmdb.add dir }
+    else
+      lmdb.update_itself
+    end
+  end
+end
+
+desc 'Get a list of IMDB.com defined genre'
+command [:genre] do |c|
+  c.action do |global_options,options,args|
+    lmdb.genre
+  end
+end
+
+desc 'Find a movie locally based on conditions'
+command [:find, :local] do |c|
+  c.desc "Find a movie with given actors"
+  c.flag [:a, :actors]
+  c.desc "Find a movie with given directors"
+  c.flag [:d, :directors]
+  c.desc "Find a movie with given writers"
+  c.flag [:w, :writers]
+  c.desc "Find a movie with given genre"
+  c.flag [:g, :genre]
+  c.desc "Find a movie with given PG rating"
+  c.flag [:r, :rated]
+  c.desc "Limit number of movies returned"
+  c.default_value 0
+  c.flag [:l, :limit]
+  c.desc "Find movies with keywords"
+  c.flag [:k, :keywords]
+  c.desc "Find movies with IMDB.com points above.."
+  c.default_value 0
+  c.flag [:p, :points]
+  c.desc "Find movies with given tags"
+  c.flag [:t, :tags]
+  c.desc "Exclude movies with given tags"
+  c.flag [:exclude_tags]
+  c.desc 'Add tags for the movies that were found'
+  c.flag [:add_tags]
+  c.desc "Give detailed information about the movies"
+  c.switch [:v, :verbose]
+  c.desc "Find a random movie based on given conditions, and play it!"
+  c.switch [:s, :shuffle]
+  c.action do |global_options,options,args|
+    lmdb.find options
   end
 end
 
@@ -35,12 +85,15 @@ desc 'Organize movies in a folder'
 arg_name 'folder path'
 command [:classify, :organize] do |c|
 
-  c.desc 'Directory where movies will be saved after organizing'
-  c.default_value "/Volumes/JukeBox/Movies"
-  c.flag :dir
+  # c.desc 'Directory where movies will be saved after organizing'
+  # c.default_value "/Volumes/JukeBox/Movies"
+  # c.flag :dir
 
   c.desc 'Classify all movies with this language'
   c.flag :lang
+
+  c.desc 'Automatically guess movie targets'
+  c.switch [:g, :guess]
 
   c.action do |global_options,options,args|
     Movier.organize args, options
@@ -65,7 +118,7 @@ end
 on_error do |exception|
   # Error logic here
   # return false to skip default error handling
-  false
+  true
 end
 
 exit run(ARGV)

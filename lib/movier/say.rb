@@ -1,5 +1,11 @@
 module Movier
-  def self.say_with_status(status, message, colorscheme = nil)
+  # say something in a nicely formatted way
+  #
+  # * *Args*    :
+  #   - +status+ -> status for this message
+  #   - +message+ -> actual message
+  #   - +colorscheme+ -> color scheme to be used for this message
+  def self.say_with_status(status, message, colorscheme = nil, do_break = false)
     # Create a color scheme, naming color patterns with symbol names.
     ft = HighLine::ColorScheme.new do |cs|
       cs[:regular]     = [ ]
@@ -10,45 +16,34 @@ module Movier
       cs[:success]     = [ :green ]
       cs[:error]       = [ :bold, :red]
       cs[:warning]     = [ :bold, :yellow ]
-
     end
-
     # Assign that color scheme to HighLine...
     HighLine.color_scheme = ft
-
     # default color scheme
     colorscheme ||= :regular
-
-    status += " " * (15 - status.length)
-    message = message.gsub("'", %q(\\\')).split.each_slice(10).map{|x| x.join(" ") }
-    message = message.join("\n" + " " * 20)
+    status += " " * (20 - status.length)
+    message = message.gsub("'", %q(\\\'))
+    if do_break
+      message = message.split.each_slice(10).map{|x| x.join(" ") }
+      message = message.join("\n" + " " * 25)
+    end
     say("<%= color('    #{status} #{message}', '#{colorscheme}') %>")
-
   end
 
-  def self.say_rated(status, message, rating)
-    rating = rating.to_f
-    scheme = :below6 if rating < 6
-    scheme = :above6 if rating >= 6
-    scheme = :above8 if rating >= 8
-    say_with_status status, message, scheme
+  def self.tip_now(message, status="Information", do_break = false)
+    say_with_status status, message, :information, do_break
   end
 
-  def self.show_info(message)
-    # message += "\n" + "=" * message.length
-    say_with_status "Information", message, :information
+  def self.passed_with(message, do_break = false)
+    say_with_status "Success", message, :success, do_break
   end
 
-  def self.say_success(message)
-    say_with_status "Success", message, :success
+  def self.warn_with(message, do_break = false)
+    say_with_status "Warning", message, :warning, do_break
   end
 
-  def self.say_warning(message)
-    say_with_status "Warning", message, :warning
-  end
-
-  def self.show_error(message)
-    say_with_status "ERROR", message, :error
+  def self.failed_with(message, do_break = false)
+    say_with_status "ERROR", message, :error, do_break
     raise message
   end
 end
