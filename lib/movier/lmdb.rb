@@ -132,12 +132,13 @@ module Movier
       elsif open && open.to_i > 0
         movie = filtered[open.to_i - 1]
         # TODO: fix this to use a pure ruby implementation
+        require 'shellwords'
         nice_name = "#{movie[:title]} [#{movie[:year]}]"
-        movie_dir = "#{movie[:path]}".gsub(" ", "\\ ")
+        movie_dir = Shellwords.escape(movie[:path])
         movie_file = `find #{movie_dir} -type f`.strip.split("\n")
         movie_file = movie_file.select{|f| File.size(f) > 100 * 2**20}.first
         Movier.tip_now "Opening: #{nice_name} with VLC Player"
-        `open "#{movie_file}" -a VLC &`
+        `open '#{movie_file}' -a VLC &`
       end
     end
 
