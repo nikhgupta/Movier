@@ -52,7 +52,7 @@ module Movier
   #   - path to the imdb.txt file for the given movie path
   #
   def self.imdb_file_for(movie_path)
-    File.join(Filename.dirname(movie_path), "imdb.txt")
+    File.join(File.dirname(movie_path), "imdb.txt")
   end
 
   # check whether the movie with given path has already been organized

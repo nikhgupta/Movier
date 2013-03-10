@@ -55,7 +55,7 @@ module Movier
 
     # let the user know, which target was selected
     imdb  = movie[:imdb]
-    selected  = "#{imdb["Title"]} [#{imdb["Year"]}"
+    selected  = "#{imdb["Title"]} (#{imdb["Year"]})"
     selected += " at #{imdb["imdbRating"]} points with #{imdb["imdbVotes"]} votes"
     say_rated "Selected", selected, imdb["imdbRating"]
 
@@ -89,12 +89,12 @@ module Movier
     search.sort_by {|m| m["weight"] }
 
     # can we make an intelligent guess ?
-    guessable = guess &&
-                search.count > 1 && (
-                search[1]["votes"]  < 5000   &&
-                search[0]["votes"]  > 100000 ) || (
-                search[0]['votes']  > 10000  &&
-                search[0]["weight"] > 40 * search[1]["weight"] )
+    # puts search.inspect
+    guessable = guess && search.count > 1
+    guessable = ( search[1]["votes"]  < 5000   &&
+                  search[0]["votes"]  > 100000 ) || (
+                  search[0]['votes']  > 10000  &&
+                  search[0]["weight"] > 40 * search[1]["weight"] ) if guessable
 
     # pick if only one movie was found, or if search is guessable
     pick = search[0] if search.count == 1 || guessable
@@ -188,7 +188,7 @@ module Movier
     #   /Volumes/JukeBox/Movies/English/6+/Top Gun [1986]/
     imdb = movie[:imdb]
     nice_name = "#{imdb["Title"]} (#{imdb["Year"]})".gsub(/(\\|\/|\:)/, ' - ')
-    movie_path = File.join(org_path, lang, "#{imdb["imdbRating"]}+", nice_name)
+    movie_path = File.join(org_path, lang, "#{imdb["imdbRating"].to_i}+", nice_name)
     FileUtils.mkdir_p movie_path
 
     Dir.chdir(movie_path) do
