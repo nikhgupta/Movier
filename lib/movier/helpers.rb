@@ -66,4 +66,12 @@ module Movier
     File.exists?(imdb_file_for(movie_path))
   end
 
+  def self.read_yaml(file)
+    YAML.load_file(file)
+  end
+
+  def self.write_yaml(file, data)
+    File.open(file, "w") {|f| f.puts data.to_yaml }
+  end
+
 end

@@ -143,6 +143,16 @@ module Movier
       end
     end
 
+    def fetch_subtitle(args = nil)
+      movie = args ? args.join " " : get_currently_playing_movie
+      raise "Please, let me know which movie to find subtitles for!" unless movie
+    end
+
+    def get_currently_playing_movie
+      VLC = "/Applications/VLC.app/Contents/MacOS/VLC"
+
+    end
+
     def sort_movies
       @movies = @movies.sort_by {|movie| movie[:weight] }.reverse
     end
@@ -239,13 +249,5 @@ module Movier
     def in_database?(movie)
       @movies.select{|m| m[:id] == movie[:imdb]["imdbID"]}.any?
     end
-  end
-
-  def self.read_yaml(file)
-    YAML.load_file(file)
-  end
-
-  def self.write_yaml(file, data)
-    File.open(file, "w") {|f| f.puts data.to_yaml }
   end
 end
