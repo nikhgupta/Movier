@@ -57,6 +57,7 @@ module Movier
     end
 
     def find(params)
+      # TODO: add support for "find in a box" and "exclude boxes"
       read_data; @params = params; @params[:verbose] = true if @params[:shuffle]
       raise "Please, add some movie boxes, before searching in the local movie database" unless @movies.any?
 
@@ -182,6 +183,7 @@ module Movier
       imdb.each do |file|
         movie = Movier.read_yaml file
         if in_database?(movie) && !@boxes.include?(dir)
+          # TODO: add the path with a "dup" key
           Movier.warn_with "#{movie[:imdb]["Title"]} already exists in database!"
         elsif !in_database?(movie)
           @movies.push sanitize(movie, dir, file)
