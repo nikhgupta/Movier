@@ -80,6 +80,12 @@ module Movier
       @movies = @movies.slice(0, @params[:limit].to_i) if @params[:limit].to_i > 0
       @movies = [ @movies.shuffle.first ] if @params[:shuffle]
 
+      unless @params[:unavailable]
+        all_count = @movies.count
+        @movies.select!{|x| File.directory?(x[:path]) }
+        miss_count = all_count - @movies.count
+      end
+
       counter = 1
       @movies.each do |movie|
         nice_name = "#{movie[:title]} [#{movie[:year]}]"
@@ -108,6 +114,9 @@ module Movier
         puts
         counter += 1
       end
+
+      Movier.tip_now "#{miss_count} Movies were not found from this search!", "Missing" if miss_count > 0
+
       return if @movies.empty?
       filtered = @movies
 

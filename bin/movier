@@ -76,6 +76,8 @@ command [:find, :local] do |c|
   c.switch [:v, :verbose]
   c.desc "Find a random movie based on given conditions, and play it!"
   c.switch [:s, :shuffle]
+  c.desc "Also, list unavailable movies"
+  c.switch [:unavailable]
   c.action do |global_options,options,args|
     lmdb.find options
   end
