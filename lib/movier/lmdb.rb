@@ -155,15 +155,9 @@ module Movier
       message  = "Found no movie box in the local database.\n"
       message += "Please, run `movier add` to add some movie boxes, before updating me!"
       raise message if @boxes.empty?
-      @boxes.each { |box| delete(box); add(box) }
-    end
-
-    def delete(dir = nil)
-      dir = File.expand_path dir
-      @movies.reject!{ |movie| movie[:box] == dir }
-      @boxes.reject!{ |box| box == dir }
+      @movies = []
       write_data
-      current_state
+      @boxes.each { |box| add(box) }
     end
 
     # Add a given directory to the local movie database.
@@ -182,9 +176,9 @@ module Movier
       count = 0
       imdb.each do |file|
         movie = Movier.read_yaml file
-        if in_database?(movie) && !@boxes.include?(dir)
+        if in_database?(movie)
           # TODO: add the path with a "dup" key
-          Movier.warn_with "#{movie[:imdb]["Title"]} already exists in database!"
+          Movier.warn_with "#{movie[:imdb]["Title"]} - # #{movie[:imdb]["imdbRating"]} -  already exists in database!"
         elsif !in_database?(movie)
           @movies.push sanitize(movie, dir, file)
           count += 1
@@ -194,12 +188,8 @@ module Movier
       @boxes.push dir unless @boxes.include? dir
       write_data
 
-      Movier.passed_with "Added #{count} new movies in LMDB."
-      current_state
-    end
-
-    def current_state
-      Movier.tip_now "LMDB now contains #{@movies.count} movies, and #{@boxes.count} boxes."
+      Movier.passed_with "Added #{"%4d" % count} new movies in LMDB from: #{dir}"
+      Movier.tip_now "LMDB now contains #{"%4d" % @movies.count} movies."
     end
 
     def sanitize(movie, dir, imdb_file)
