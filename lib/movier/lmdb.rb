@@ -24,6 +24,15 @@ module Movier
       read_data
     end
 
+    def add_tags(movie, tags)
+      tags = tags.to_s.split(",").map{|t| Movier.titleize(t.strip)}
+      movies = Movier.read_yaml(DataFile)[:movies] rescue []
+      movies.each_with_index do |m, i|
+        movies[i][:tags] |= tags if m[:id] == movie[:id]
+      end
+      write_data(movies)
+    end
+
     def find_persons(kind = :actors)
       invalid_kind = @movies.first && !@movies.first.has_key?(kind.to_sym)
       raise "I don't have any info about #{Movier.titleize(kind.to_s)}" if invalid_kind
@@ -116,25 +125,25 @@ module Movier
 
       # add some tags to this search
       if @params[:add_tags]
-        tags = @params[:add_tags].split(",").map{|t| Movier.titleize(t.strip)}
-        read_data
-        filtered.each do |f|
-          @movies.each_with_index do |m,i|
-            @movies[i][:tags] |= tags if m[:id] == f[:id]
-          end
+        filtered.each do |movie|
+          add_tags(movie, @params[:add_tags])
         end
-        write_data
         Movier.tip_now "Added tags: '#{tags.join(", ")}' to this search!"
       end
 
       # TODO: remove tags?
-
-      message = "Do you want me to play #{@params[:shuffle] ? "this" : "some"} movie for you? [enter number from above] "
+      message = ", 'w' for skipping and marking it as watched"
+      message = "Do you want me to play #{@params[:shuffle] ? "this" : "some"} movie for you? [enter number from above#{message if @params[:shuffle]}] "
       begin; open = ask(message) {|x| x.default = "no" }; rescue Exception; end
       if open == "no" && @params[:shuffle]
         find @params
-      elsif open && open.to_i > 0
+      elsif open == "w" && @params[:shuffle]
         movie = filtered[open.to_i - 1]
+        add_tags movie, :watched
+        puts "Marked movie as watched: #{movie[:title]} [#{movie[:year]}]\n\n"
+        find @params
+      elsif open && (open.to_i > 0 || open == "o")
+        movie = open == "o" ? filtered[0] : filtered[open.to_i - 1]
         if movie[:path] && File.directory?(movie[:path])
           require 'shellwords'
           nice_name = "#{movie[:title]} [#{movie[:year]}]"
