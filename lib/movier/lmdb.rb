@@ -65,6 +65,7 @@ module Movier
       [:directors, :writers, :actors, :genre, :tags].each { |kind| find_persons(kind) }
       @movies.select!{|movie| movie[:rated] == @params[:rated] } if @params[:rated]
       @movies.select!{|movie| movie[:rating] >= @params[:points].to_f } if @params[:points]
+      @movies = @movies.group_by{|m| m[:box]}.select{|k,v| File.directory?(k)}.values.flatten unless @params[:all]
 
       # filter on tag exclusion
       tags = @params[:exclude_tags]
@@ -73,8 +74,8 @@ module Movier
           @movies.reject!{ |movie| movie[:tags].join(", ").downcase.include? tag.downcase.strip}
         end
       end
-      @movies.reject!{|movie| movie[:tags].join(", ").downcase.include? "watched"} unless @params[:tags] &&
-        @params[:tags].include?("watched")
+      # @movies.reject!{|movie| movie[:tags].join(", ").downcase.include? "watched"} unless @params[:tags] &&
+      #   @params[:tags].include?("watched")
 
       sort_movies
       @movies = @movies.slice(0, @params[:limit].to_i) if @params[:limit].to_i > 0
@@ -83,6 +84,8 @@ module Movier
       counter = 1
       @movies.each do |movie|
         nice_name = "#{movie[:title]} [#{movie[:year]}]"
+        movie[:tags] ||= []
+        movie[:tags].push "-- Unavailable --" unless File.exists?(movie[:path])
         if @params[:verbose]
           Movier.tip_now "%03d" % counter + ") " + nice_name, Movier.titleize(movie[:type])
           Movier.tip_now movie[:path], "Path"

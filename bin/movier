@@ -80,6 +80,8 @@ module Movier
     c.switch [:v, :verbose]
     c.desc "Find a random movie based on given conditions, and play it!"
     c.switch [:s, :shuffle]
+    c.desc 'Search in all boxes, irrespective of their mount status'
+    c.switch [:all]
     c.action do |global_options,options,args|
       lmdb.find options
     end
