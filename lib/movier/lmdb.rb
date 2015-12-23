@@ -139,7 +139,11 @@ module Movier
         movie_file = `find #{movie_dir} -type f`.strip.split("\n")
         movie_file = movie_file.select{|f| File.size(f) > 100 * 2**20}.first
         Movier.tip_now "Opening: #{nice_name} with VLC Player"
-        `open '#{movie_file}' -a VLC &`
+        if File.exists?(movie_file)
+          `open '#{movie_file}' -a VLC &`
+        else
+          puts "File not found: #{movie_file}"
+        end
       end
     end
 
