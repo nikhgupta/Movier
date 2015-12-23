@@ -132,17 +132,22 @@ module Movier
         find @params
       elsif open && open.to_i > 0
         movie = filtered[open.to_i - 1]
-        # TODO: fix this to use a pure ruby implementation
-        require 'shellwords'
-        nice_name = "#{movie[:title]} [#{movie[:year]}]"
-        movie_dir = Shellwords.escape(movie[:path])
-        movie_file = `find #{movie_dir} -type f`.strip.split("\n")
-        movie_file = movie_file.select{|f| File.size(f) > 100 * 2**20}.first
-        Movier.tip_now "Opening: #{nice_name} with VLC Player"
-        if File.exists?(movie_file)
-          `open '#{movie_file}' -a VLC &`
+        if movie[:path] && File.directory?(movie[:path])
+          require 'shellwords'
+          nice_name = "#{movie[:title]} [#{movie[:year]}]"
+          movie_dir = Shellwords.escape(movie[:path])
+          movie_file = `find #{movie_dir} -type f`.strip.split("\n")
+          movie_file = movie_file.select{|f| File.size(f) > 100 * 2**20}.first
+          Movier.tip_now "Opening: #{nice_name} with VLC Player"
+          if File.exists?(movie_file)
+            `open '#{movie_file}' -a VLC &`
+          else
+            puts "Movie File not found: #{movie_file}"
+            puts "Perhaps this movie has been deleted from this box?: #{movie[:box]}"
+          end
         else
-          puts "File not found: #{movie_file}"
+          puts "Movie directory not found: #{movie[:path]}"
+          puts "Perhaps this box isn't active at the moment?: #{movie[:box]}"
         end
       end
     end
