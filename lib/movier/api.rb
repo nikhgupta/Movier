@@ -48,7 +48,7 @@ module Movier
     query = ""; params.each { |k, v| query += "#{k}=#{v}" }
     response = HTTParty.get("http://omdbapi.com/?#{URI::encode(query)}")
     failed_with response.response unless response.success?
-    response = JSON.parse(response.parsed_response)
+    response = response.parsed_response if response.is_a?(String)
     failed_with response["Error"] if response["Error"]
     response
   end

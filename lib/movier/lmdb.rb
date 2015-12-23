@@ -155,9 +155,9 @@ module Movier
       message  = "Found no movie box in the local database.\n"
       message += "Please, run `movier add` to add some movie boxes, before updating me!"
       raise message if @boxes.empty?
-      @movies = []
+      @movies = read_data
       write_data
-      @boxes.each { |box| add(box) }
+      @boxes.each { |box| begin; add(box); rescue StandardError => e; puts "Error: #{e.message}"; end }
     end
 
     # Add a given directory to the local movie database.
@@ -168,7 +168,7 @@ module Movier
     #
     def add(dir = nil)
       dir = File.expand_path dir
-      raise "No such directory!" unless File.directory?(dir)
+      raise "No such directory found! - #{dir}" unless File.directory?(dir)
 
       imdb = Dir.glob("#{dir}/**/imdb.txt")
       raise 'You should first run `movier organize` on this directory!' unless imdb.count > 0
@@ -176,10 +176,9 @@ module Movier
       count = 0
       imdb.each do |file|
         movie = Movier.read_yaml file
-        if in_database?(movie)
-          # TODO: add the path with a "dup" key
-          Movier.warn_with "#{movie[:imdb]["Title"]} - # #{movie[:imdb]["imdbRating"]} -  already exists in database!"
-        elsif !in_database?(movie)
+        if (existing = in_database?(movie)) && in_another_box?(existing, dir)
+          Movier.warn_with "#{movie['imdb']["Title"]} - # #{movie['imdb']["imdbRating"]} -  already exists. Duplicate found in box: #{dir}"
+        elsif !existing
           @movies.push sanitize(movie, dir, file)
           count += 1
         end
@@ -193,7 +192,7 @@ module Movier
     end
 
     def sanitize(movie, dir, imdb_file)
-      imdb = movie[:imdb]
+      imdb = movie['imdb']
       nice_name = "#{imdb["Title"]} [#{imdb["Year"]}]"
       hash = (Digest::MD5.new << nice_name).to_s.slice(0,8)
       data = {
@@ -227,7 +226,11 @@ module Movier
     end
 
     def in_database?(movie)
-      @movies.select{|m| m[:id] == movie[:imdb]["imdbID"]}.any?
+      @movies.detect{|m| m[:id] == movie['imdb']["imdbID"]}
+    end
+
+    def in_another_box?(existing, dir)
+      existing[:box] != dir
     end
   end
 

@@ -23,7 +23,7 @@ module Movier
 
       # ask user where the organized files will be put up?
       tip_now "Movies will be saved as: <organized>/<Language>/<rating>+/<movie_name> [<year>]"
-      options[:dir] = ask_for_directory("Where should I put the organized files? ")
+      options[:dir] ||= ask_for_directory("Where should I put the organized files? ")
 
       # organize movies one by one
       movies.each { |movie_path| organize_movie movie_path, options }
@@ -57,7 +57,7 @@ module Movier
     imdb  = movie[:imdb]
     selected  = "#{imdb["Title"]} (#{imdb["Year"]})"
     selected += " at #{imdb["imdbRating"]} points with #{imdb["imdbVotes"]} votes"
-    say_rated "Selected", selected, imdb["imdbRating"]
+    say_rated (movie[:guessed] ? "Guessed" : "Selected"), selected, imdb["imdbRating"]
 
     # since, we can't find movie's language, ask user for it.
     lang = options[:lang] || ask("What language this movie is in? ") {|x| x.default = "en" }
@@ -86,7 +86,7 @@ module Movier
     # get information from IMDB.com for each movie found
     search.map!{ |mov| fetch_details mov["imdbID"] }
     # sort our movies
-    search.sort_by {|m| m["weight"] }
+    search = search.sort_by {|m| m["weight"] }.uniq{ |m| m["weight"] }.reverse
 
     # can we make an intelligent guess ?
     # puts search.inspect
@@ -100,7 +100,7 @@ module Movier
     pick = search[0] if search.count == 1 || guessable
 
     # let the user pick a movie otherwise from given options
-    unless pick
+    if !pick
       tip_now "Please, choose the correct movie title below:"
       choose do |menu|
         # let the user pick from found movie titles
@@ -119,7 +119,7 @@ module Movier
         end
         menu.choice("[ Use another keyword ]") do
           keyword = ask("Keyword to search with? ")
-          pick_movie keyword
+          pick = pick_movie(keyword)[:imdb] rescue false
         end
         # let the user ignore this movie for organizing purposes
         menu.choice("[ Ignore ]") { return false }
@@ -128,7 +128,8 @@ module Movier
 
     # return our pick or false for skipping this movie
     movie[:imdb] = pick
-    pick ? movie : false
+    movie[:guessed] = guessable
+    return pick ? movie : false
   end
 
   # Search a movie given some keywords, and optionally, an year.
@@ -157,6 +158,7 @@ module Movier
         keyword = keyword.count == 1 ? keyword[0] : "#{keyword[0]} #{keyword[1]}"
       elsif not search.any?
         keyword = ask("Please, provide keywords/IMDB ID to search with: ")
+        return [] if keyword.strip.empty?
         return [{ "imdbID" => keyword }] if keyword =~ /tt\d{7}/
       end
 
@@ -195,6 +197,7 @@ module Movier
       # move the movie to this folder
       # TODO: skip copying the file if this movie already exists
       FileUtils.mv movie[:path], nice_name + File.extname(movie[:path])
+      movie = JSON.parse movie.to_json
       # create imdb.txt file inside this folder
       File.open("imdb.txt", "w") {|f| f.puts movie.to_yaml}
       # download the movie posted to this folder
